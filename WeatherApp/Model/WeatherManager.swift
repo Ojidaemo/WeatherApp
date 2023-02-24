@@ -9,17 +9,22 @@ import Foundation
 
 struct WeatherManager {
     
-    func fetchCurrentWeather(forCity city: String, completionHandler: @escaping (CurrentWeather) -> Void) {
+    // transfer currentWeather to VC
+    var onCompletion: ((CurrentWeather) -> Void)?
+    
+    func fetchCurrentWeather(forCity city: String) {
         let urlString = "https://api.openweathermap.org/data/2.5/weather?appid=\(apiKey)&units=metric&q=\(city)"
         guard let url = URL(string: urlString) else { return }
         let session = URLSession(configuration: .default)
         let task = session.dataTask(with: url) { data, response, error in
             if let data = data {
                 if let currentWeather = self.parseJSON(withData: data) {
-                    completionHandler(currentWeather)
+                    // transfer currentWeather to VC
+                    self.onCompletion?(currentWeather)
                 }
             }
         }
+        
         task.resume()
     }
     

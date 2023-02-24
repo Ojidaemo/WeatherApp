@@ -9,7 +9,7 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    let weatherManager = WeatherManager()
+    var weatherManager = WeatherManager()
     
     //MARK: - UI Elements
     
@@ -151,18 +151,18 @@ class ViewController: UIViewController {
         setupViews()
         setConstraints()
         
-        weatherManager.fetchCurrentWeather(forCity: "Minsk") { currentWeather in
-            
+        // transfer currentWeather to VC
+        weatherManager.onCompletion = { currentWeather in
         }
+        
+//        weatherManager.fetchCurrentWeather(forCity: "Minsk") 
     
     }
     
     @objc func searchButtonPressed() {
         
         presentAlert() { city in
-            self.weatherManager.fetchCurrentWeather(forCity: city) { currentWeather in
-                
-            }
+            self.weatherManager.fetchCurrentWeather(forCity: city)
         }
     }
     
