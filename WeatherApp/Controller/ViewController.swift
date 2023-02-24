@@ -9,6 +9,10 @@ import UIKit
 
 class ViewController: UIViewController {
     
+    let weatherManager = WeatherManager()
+    
+    //MARK: - UI Elements
+    
     private let backgroundImage: UIImageView = {
        let imageView = UIImageView()
         imageView.image = UIImage(named: "Background")
@@ -123,7 +127,7 @@ class ViewController: UIViewController {
     
     private let cityLabel: UILabel = {
        let label = UILabel()
-        label.text = "Minsk"
+        label.text = "Search for weather"
         label.font = .systemFont(ofSize: 20)
         label.textColor = .init(named: "myColor")
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -138,16 +142,28 @@ class ViewController: UIViewController {
         button.addTarget(self, action: #selector(searchButtonPressed), for: .touchUpInside)
         return button
     }()
+    
+    //MARK: - Functions
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         setupViews()
         setConstraints()
+        
+        weatherManager.fetchCurrentWeather(forCity: "Minsk") { currentWeather in
+            
+        }
+    
     }
     
     @objc func searchButtonPressed() {
         
+        presentAlert() { city in
+            self.weatherManager.fetchCurrentWeather(forCity: city) { currentWeather in
+                
+            }
+        }
     }
     
     func setupViews() {
@@ -171,6 +187,7 @@ class ViewController: UIViewController {
 }
 
 extension ViewController {
+    
     func setConstraints() {
         NSLayoutConstraint.activate([
             backgroundImage.topAnchor.constraint(equalTo: view.topAnchor),
