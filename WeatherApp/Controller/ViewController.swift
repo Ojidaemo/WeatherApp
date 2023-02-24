@@ -6,10 +6,18 @@
 //
 
 import UIKit
+import CoreLocation
 
 class ViewController: UIViewController {
     
     var weatherManager = WeatherManager()
+    lazy var locationManager: CLLocationManager = {
+        let lm = CLLocationManager()
+        lm.delegate = self
+        lm.desiredAccuracy = kCLLocationAccuracyKilometer
+        lm.requestWhenInUseAuthorization()
+        return lm
+    }()
     
     //MARK: - UI Elements
     
@@ -32,7 +40,7 @@ class ViewController: UIViewController {
     
     private let weatherImage: UIImageView = {
        let image = UIImageView()
-        image.image = UIImage(systemName: "cloud.sun")?.withTintColor(.systemRed)
+        image.image = UIImage(systemName: "nosign")?.withTintColor(.systemRed)
         image.tintColor = .init(named: "myColor")
         image.translatesAutoresizingMaskIntoConstraints = false
         return image
@@ -61,7 +69,7 @@ class ViewController: UIViewController {
     
     private let tamperatureLabel: UILabel = {
         let label = UILabel()
-        label.text = "25"
+        label.text = "--"
         label.font = .systemFont(ofSize: 70, weight: .bold)
         label.textColor = .init(named: "myColor")
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -98,7 +106,7 @@ class ViewController: UIViewController {
     
     private let feelsLikeTempLabel: UILabel = {
         let label = UILabel()
-        label.text = "23"
+        label.text = "--"
         label.font = .systemFont(ofSize: 17)
         label.textColor = .init(named: "myColor")
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -128,7 +136,7 @@ class ViewController: UIViewController {
     private let cityLabel: UILabel = {
        let label = UILabel()
         label.text = "Search for weather"
-        label.font = .systemFont(ofSize: 20)
+        label.font = .systemFont(ofSize: 25)
         label.textColor = .init(named: "myColor")
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -144,6 +152,13 @@ class ViewController: UIViewController {
     }()
     
     //MARK: - Functions
+    
+    @objc func searchButtonPressed() {
+        
+        presentAlert() { [unowned self] city in
+            self.weatherManager.fetchCurrentWeather(forRequestType: .cityName(city: city))
+        }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -152,17 +167,22 @@ class ViewController: UIViewController {
         setConstraints()
         
         // transfer currentWeather to VC
-        weatherManager.onCompletion = { currentWeather in
+        weatherManager.onCompletion = { [weak self] currentWeather in
+            guard let self = self else { return }
+            self.updateInterfaceWith(weather: currentWeather)
         }
         
-//        weatherManager.fetchCurrentWeather(forCity: "Minsk") 
-    
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestLocation()
+
     }
     
-    @objc func searchButtonPressed() {
-        
-        presentAlert() { city in
-            self.weatherManager.fetchCurrentWeather(forCity: city)
+    func updateInterfaceWith(weather: CurrentWeather) {
+        DispatchQueue.main.async {
+            self.cityLabel.text = weather.cityName
+            self.tamperatureLabel.text = weather.temperatureString
+            self.feelsLikeTempLabel.text = weather.feelLikeTemperatureString
+            self.weatherImage.image = UIImage(systemName: weather.conditionName)
         }
     }
     
@@ -201,9 +221,30 @@ extension ViewController {
             topStack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,constant: 20),
             topStack.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             
+            searchButton.heightAnchor.constraint(equalToConstant: 25),
+            searchButton.widthAnchor.constraint(equalToConstant: 25),
+            
             bottomStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor,constant: -50),
-            bottomStack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -50),
+            bottomStack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20),
         
         ])
     }
+}
+
+//MARK: - CLLocationManagerDelegate
+
+extension ViewController: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let location = locations.last else { return }
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        
+        weatherManager.fetchCurrentWeather(forRequestType: .coordinate(latitude: latitude, longitude: longitude))
+        
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print(error.localizedDescription)
+    }
+    
 }
